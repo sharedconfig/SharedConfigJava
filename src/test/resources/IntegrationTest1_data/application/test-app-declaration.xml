@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration format="1.0.0">
+
+    <sources>
+        <source to="./" from="./" />
+    </sources>
+
+    <application name="configurable_app" version="1.0.0" format="1.0.0">
+        <templates>
+            <include processor="dog" mask="*.config" searchOption="AllDirectories" />
+            <include processor="dog" mask="*.xml" searchOption="AllDirectories" />
+            <include processor="dog" mask="*.json" searchOption="AllDirectories" />
+        </templates>
+        <blocks>
+            <include mask="block-settings.xml" searchOption="AllDirectories" />
+        </blocks>
+        <variables>
+            <var name="app_level_variable" description="app_level_variable description" format="app_level_variable format" optional="false">app_level_variable default value</var>
+        </variables>
+    </application>
+</configuration>

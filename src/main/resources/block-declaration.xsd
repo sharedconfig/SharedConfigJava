@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+  <!--targetNamespace="up.configuration.block-declaration"-->
+
+
+  <xs:complexType name="templates-type">
+    <xs:sequence>
+      <xs:element name="include" type="templates-include-type"  minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+
+  <xs:complexType name="templates-include-type">
+    <xs:attribute name="parser" type="xs:string" use="required" />
+    <xs:attribute name="mask" type="xs:string" use="required" />
+    <xs:attribute name="searchOption" type="xs:string" use="required" />
+  </xs:complexType>
+
+
+  <xs:complexType name="variables-type">
+    <xs:sequence>
+      <xs:element name="var" type="var-type" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+
+  <xs:complexType name="var-type">
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="description" type="xs:string" use="optional" />
+    <xs:attribute name="format" type="xs:string" use="required" />
+    <xs:attribute name="optional" type="xs:boolean" use="optional" />
+    <xs:attribute name="default" type="xs:string" use="optional" />
+    <xs:attribute name="deleted" type="xs:boolean" use="optional" />
+    <xs:anyAttribute/>
+  </xs:complexType>
+
+
+  <xs:complexType name="block-type">
+    <xs:sequence>
+      <xs:element name="templates" type="templates-type" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="variables" type="variables-type" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="format" type="xs:string" use="required" />
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="version" type="xs:string" use="optional" />
+    <xs:anyAttribute/>
+  </xs:complexType>
+
+
+  <xs:complexType name="package-type">
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="version" type="xs:string" use="optional" />
+    <xs:anyAttribute/>
+  </xs:complexType>
+
+  <xs:element name="block" type="block-type"/>
+
+
+</xs:schema>

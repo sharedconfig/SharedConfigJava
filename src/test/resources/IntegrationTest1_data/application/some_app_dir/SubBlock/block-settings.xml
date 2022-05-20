@@ -1,0 +1,13 @@
+<block name="block_2" version="1.0.0" format="1.0.0" extraAttribute="block_2_salt" xmlns:i="information">
+
+	<templates>
+		<include processor="bracket" mask="*.config" />
+	</templates>
+	
+	<variables>
+		<var name="block_2.variable" i:description="block_2.variable description" >block_2.variable default Value</var>
+		<var name="block_2.variable2" i:description="block_2.variable description" ><![CDATA[block_2.variable default Value CDATA]]></var>
+	</variables>
+	
+</block>
+

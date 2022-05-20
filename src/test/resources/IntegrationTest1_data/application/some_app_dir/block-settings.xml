@@ -1,0 +1,12 @@
+<block name="block_1" version="1.0.0" format="1.0.0" xmlns:m="metadata" m:extraAttribute="block_1_salt metadata" extraAttribute2="block_1_salt no metadata">
+
+	<templates>
+		<include processor="bracket" mask="*.config" />
+	</templates>
+	
+	<variables>
+		<var name="block_1.variable" default="block_1.variable default Value" optional="false" m:extra2="block_1.variable.salt metadata" extra="block_1.variable.salt no metadata">test_default</var>
+	</variables>
+	
+</block>
+

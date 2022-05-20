@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<variables  xmlns:a="application" xmlns:b="block" xmlns:d="dimension">
+    <var name="app_level_variable">app variable</var>
+    <var name="block_1.variable">block_1.variable value</var>
+    <var name="block_2.variable">block_2.variable value</var>
+    <var name="block_2.variable2">block_2.variable2 value</var>
+</variables>
