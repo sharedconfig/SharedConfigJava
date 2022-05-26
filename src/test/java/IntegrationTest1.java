@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import sharedconfig.core.ApplicationSettings;
 import sharedconfig.core.ConfigurationEngine;
 import sharedconfig.helpers.FileHelper;
+import sharedconfig.helpers.SharedConfigHelperTwo;
 
 import java.util.List;
 
@@ -56,6 +57,7 @@ public class IntegrationTest1 {
     @Test
     void Test1() {
 
+        //SharedConfigHelperTwo.ensureConfigurationFilesExtracted("up-configuration");
         //LoggerConfigurer.redirectLogsToUPDefaultLocation("TestApp", "1.0.0");
 
         var applicationSettings = ApplicationSettings.create(
