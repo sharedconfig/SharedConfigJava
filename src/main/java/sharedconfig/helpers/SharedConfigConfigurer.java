@@ -12,37 +12,49 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Log4j2
-public class SharedConfigHelperTwo {
+public class SharedConfigConfigurer {
+    /**
+     * Если приложение запущено в контексте jar - извлекает папку up-configuration с конфигурационными файлами xml в папку с jar
+     * Если нет - ничего не делает
+     * @return current executable folder
+     */
+    public static String ensureConfigurationFilesExtracted(Class neededClass) throws IOException {
+        log.info("Trying to ensure configuration files extracted");
 
-    public static void ensureConfigurationFilesExtracted(String jarPath) throws IOException {
-        // Sample 3 - read all files from a resources folder (JAR version)
-        try {
-            String folder = "BOOT-INF/classes/up-configuration";
+        var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(neededClass));
+        var currentExecutableFolder = currentExecutable.isDirectory() ? currentExecutable.toString() : currentExecutable.getParentFile().toString();
 
-            // get paths from src/main/resources/up-configuration
-            List<Path> result = getPathsFromResourceJAR(jarPath, folder);
-            for (Path path : result) {
-                System.out.println("Path : " + path);
+        if (!currentExecutable.isDirectory()) {
+            try {
+                String folder = "BOOT-INF/classes/up-configuration";
+                String folderPath = "/" + currentExecutable.toString().replace('\\','/');
 
-                String filePathInJAR = path.toString();
-                // Windows will returns /json/file1.json, cut the first /
-                // the correct path should be json/file1.json
-                if (filePathInJAR.startsWith("/")) {
-                    filePathInJAR = filePathInJAR.substring(1, filePathInJAR.length());
+                // get paths from src/main/resources/up-configuration
+                List<Path> result = getPathsFromResourceJAR(folderPath, folder);
+                for (Path path : result) {
+                    System.out.println("Path : " + path);
+
+                    String filePathInJAR = path.toString();
+                    // Windows will returns /up-configuration/file1.json, cut the first /
+                    // the correct path should be up-configuration/file1.json
+                    if (filePathInJAR.startsWith("/")) {
+                        filePathInJAR = filePathInJAR.substring(1, filePathInJAR.length());
+                    }
+
+                    System.out.println("filePathInJAR : " + filePathInJAR);
+
+                    // read a file from resource folder
+                    InputStream is = getFileFromResourceAsStream(filePathInJAR);
+                    // move a file to folderPath
+                    moveFiles(is, folderPath, filePathInJAR, folder);
                 }
 
-                System.out.println("filePathInJAR : " + filePathInJAR);
-
-                // read a file from resource folder
-                InputStream is = getFileFromResourceAsStream(filePathInJAR);
-                // такой должен быть путь
-                // "C:\\Users\\Vasypu\\Desktop\\softconsalt\\SharedConfigJava\\SharedConfigJavaTestApp\\target\\app-declaration.xml"
-                moveFiles(is, jarPath, filePathInJAR, folder);
+            } catch (URISyntaxException | IOException e) {
+                e.printStackTrace();
             }
-
-        } catch (URISyntaxException | IOException e) {
-            e.printStackTrace();
         }
+
+        return currentExecutableFolder;
     }
 
     // Get all paths from a folder that inside the JAR file
@@ -71,7 +83,7 @@ public class SharedConfigHelperTwo {
     private static InputStream getFileFromResourceAsStream(String fileName) {
 
         // The class loader that loaded the class
-        ClassLoader classLoader = SharedConfigHelperTwo.class.getClassLoader();
+        ClassLoader classLoader = SharedConfigConfigurer.class.getClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(fileName);
 
         // the stream holding the file content
@@ -83,22 +95,24 @@ public class SharedConfigHelperTwo {
     }
 
     private static void moveFiles(InputStream fileToMove, String movePath, String filePathInJAR, String folder) throws IOException {
+        // get currentExecutableFolder from movePath
         if (movePath.startsWith("/")) {
             movePath = movePath.substring(1, movePath.length());
         }
         movePath.replace('\\','/');
         String newMovePath = movePath.replaceAll("\\SharedConfigJavaTestApp-0.0.1-SNAPSHOT.jar", "");
+        Path currentExecutableFolder = Paths.get(newMovePath);
+
+        // get fileName from two paths
         Path pathFolder = Paths.get(folder);
         Path pathFilePathInJAR = Paths.get(filePathInJAR);
         Path fileName = pathFolder.relativize(pathFilePathInJAR);
         log.info("fileName: {}", fileName);
-        //var appDeclXmlCopyPath = FileHelper.combinePaths(currentExecutableFolder, fileToCheck);
-        Path currentExecutableFolder = Paths.get(newMovePath);
+
         InputStreamReader streamReader = new InputStreamReader(fileToMove, StandardCharsets.UTF_8);
         var appDeclXmlContent= new BufferedReader(streamReader).lines().collect(Collectors.toList());
         var appDeclXmlCopyPath = FileHelper.combinePaths(currentExecutableFolder.toString(), fileName.toString());
-        //var appDeclXmlCopyPath = FileHelper.combinePaths(currentExecutableFolder, filePathInJAR);
         Files.write(appDeclXmlCopyPath, appDeclXmlContent, StandardCharsets.UTF_8);
-        log.info("Files moved !!!");
+        log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
     }
 }
