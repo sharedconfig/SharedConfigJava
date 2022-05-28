@@ -1,6 +1,7 @@
 package sharedconfig.helpers;
 
 import lombok.extern.log4j.Log4j2;
+import sharedconfig.core.exceptions.ApplicationSettingsCreationException;
 
 import java.io.*;
 import java.net.URI;
@@ -31,8 +32,9 @@ public class SharedConfigConfigurer {
 
                 // get paths from src/main/resources/up-configuration
                 List<Path> result = getPathsFromResourceJAR(folderPath, folder);
+                Path newCurrentExecutableFolder = createFolder(folderPath);
                 for (Path path : result) {
-                    System.out.println("Path : " + path);
+                    log.info("Path: {} ", path);
 
                     String filePathInJAR = path.toString();
                     // Windows will returns /up-configuration/file1.json, cut the first /
@@ -41,12 +43,12 @@ public class SharedConfigConfigurer {
                         filePathInJAR = filePathInJAR.substring(1, filePathInJAR.length());
                     }
 
-                    System.out.println("filePathInJAR : " + filePathInJAR);
+                    log.info("filePathInJAR: {} ", filePathInJAR);
 
                     // read a file from resource folder
                     InputStream is = getFileFromResourceAsStream(filePathInJAR);
                     // move a file to folderPath
-                    moveFiles(is, folderPath, filePathInJAR, folder);
+                    moveFiles(is, newCurrentExecutableFolder, filePathInJAR, folder);
                 }
 
             } catch (URISyntaxException | IOException e) {
@@ -62,7 +64,7 @@ public class SharedConfigConfigurer {
 
         List<Path> result = null;
 
-        System.out.println("JAR Path :" + jarPath);
+        log.info("JAR Path: {} ", jarPath);
 
         // file walks JAR
         URI uri = URI.create("jar:file:" + jarPath);
@@ -94,15 +96,23 @@ public class SharedConfigConfigurer {
         }
     }
 
-    private static void moveFiles(InputStream fileToMove, String movePath, String filePathInJAR, String folder) throws IOException {
+    private static Path createFolder(String movePath) throws IOException {
         // get currentExecutableFolder from movePath
         if (movePath.startsWith("/")) {
             movePath = movePath.substring(1, movePath.length());
         }
         movePath.replace('\\','/');
         String newMovePath = movePath.replaceAll("\\SharedConfigJavaTestApp-0.0.1-SNAPSHOT.jar", "");
-        Path currentExecutableFolder = Paths.get(newMovePath);
+        String newMovePathFolder = newMovePath + "up-configuration";
+        // Path currentExecutableFolder = Paths.get(newMovePath);
 
+        Path newCurrentExecutableFolder = Paths.get(newMovePathFolder);
+        Files.createDirectories(newCurrentExecutableFolder);
+        log.info("newCurrentExecutableFolder {} ", newCurrentExecutableFolder);
+        return newCurrentExecutableFolder;
+    }
+
+    private static void moveFiles(InputStream fileToMove, Path newCurrentExecutableFolder, String filePathInJAR, String folder) throws IOException {
         // get fileName from two paths
         Path pathFolder = Paths.get(folder);
         Path pathFilePathInJAR = Paths.get(filePathInJAR);
@@ -111,7 +121,7 @@ public class SharedConfigConfigurer {
 
         InputStreamReader streamReader = new InputStreamReader(fileToMove, StandardCharsets.UTF_8);
         var appDeclXmlContent= new BufferedReader(streamReader).lines().collect(Collectors.toList());
-        var appDeclXmlCopyPath = FileHelper.combinePaths(currentExecutableFolder.toString(), fileName.toString());
+        var appDeclXmlCopyPath = FileHelper.combinePaths(newCurrentExecutableFolder.toString(), fileName.toString());
         Files.write(appDeclXmlCopyPath, appDeclXmlContent, StandardCharsets.UTF_8);
         log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
     }
