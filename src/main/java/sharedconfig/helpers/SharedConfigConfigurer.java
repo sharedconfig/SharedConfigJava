@@ -92,7 +92,7 @@ public class SharedConfigConfigurer {
     private static String getFolderPathInJar(Class<?> packageMarkerType, String jarPath, String folderName) throws SharedConfigConfigurerException {
         var folderPathInJar = Optional.ofNullable(packageMarkerType.getClassLoader().getResource(folderName))
                 .map(URL::getPath)
-                .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName));
+                .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName)));
         log.info("folderPathInJar: {}", folderPathInJar);
 
         if (folderPathInJar.startsWith("file:")) {
