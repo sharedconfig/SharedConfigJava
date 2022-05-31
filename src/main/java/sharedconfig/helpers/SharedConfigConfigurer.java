@@ -45,7 +45,7 @@ public class SharedConfigConfigurer {
      * @param folderName        имя директории в которой лежит конфигурация
      * @param currentExecutable исполняемый файл
      * @return возвращает новую директорию с конфигурационными файлами
-     * @throws SharedConfigConfigurerException
+     * @throws SharedConfigConfigurerException если не получилось извлечь файлы из jar файла
      */
     private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
         try {
@@ -64,7 +64,7 @@ public class SharedConfigConfigurer {
                 // Windows will returns /up-configuration/file1.json, cut the first /
                 // the correct path should be up-configuration/file1.json
                 if (filePathInJAR.startsWith("/")) {
-                    filePathInJAR = filePathInJAR.substring(1, filePathInJAR.length());
+                    filePathInJAR = filePathInJAR.substring(1);
                 }
 
                 log.info("filePathInJAR: {} ", filePathInJAR);
@@ -103,7 +103,7 @@ public class SharedConfigConfigurer {
             folderPathInJar = folderPathInJar.replaceAll(jarPath, "");
         }
         if (folderPathInJar.startsWith("/")) {
-            folderPathInJar = folderPathInJar.substring(1, folderPathInJar.length());
+            folderPathInJar = folderPathInJar.substring(1);
         }
         log.info("Folder In Jar: {}", folderPathInJar);
         return folderPathInJar;
@@ -117,11 +117,11 @@ public class SharedConfigConfigurer {
      * @return возвращает пути до конфигурационных файлов внутри jar файла
      * @throws URISyntaxException
      * @throws IOException
-     * @throws SharedConfigConfigurerException
+     * @throws SharedConfigConfigurerException если не обнаружен jar файл
      */
     private static List<Path> getPathsFromResourceJAR(String jarPath, String folderPathInJar) throws URISyntaxException, IOException, SharedConfigConfigurerException {
 
-        List<Path> result = null;
+        List<Path> result;
         log.info("JAR Path: {} ", jarPath);
 
         // file walks JAR
@@ -144,7 +144,7 @@ public class SharedConfigConfigurer {
      *
      * @param fileName имя файла для считывания входным потоком
      * @return возвращает поток ввода с считанным файлом
-     * @throws SharedConfigConfigurerException
+     * @throws SharedConfigConfigurerException если не удалось найти файл
      */
     private static InputStream getFileFromResourceAsStream(String fileName) throws SharedConfigConfigurerException {
 
@@ -167,12 +167,12 @@ public class SharedConfigConfigurer {
      * @param jarName    имя jar файла
      * @param folderName имя директории в которой лежит конфигурация
      * @return возвращает новую деррикторию
-     * @throws SharedConfigConfigurerException
+     * @throws SharedConfigConfigurerException если не удалось создать новую дирректорию
      */
     private static Path createFolder(String jarPath, String jarName, String folderName) throws SharedConfigConfigurerException {
         // get newCurrentExecutableFolder from jarPath
         if (jarPath.startsWith("/")) {
-            jarPath = jarPath.substring(1, jarPath.length());
+            jarPath = jarPath.substring(1);
         }
         jarPath = jarPath.replace('\\', '/');
         var currentExecutableFolder = jarPath.replaceAll(jarName, "");
@@ -195,7 +195,7 @@ public class SharedConfigConfigurer {
      * @param newCurrentExecutableFolder новый путь по которому нужно переместить файл
      * @param filePathInJAR              путь файла для перемещения в jar файле
      * @param folderPathInJar            путь к директории в которой лежит конфигурация внутри исполняемого jar файла
-     * @throws SharedConfigConfigurerException
+     * @throws SharedConfigConfigurerException если не удалось записать файл по заданному пути
      */
     private static void moveFile(InputStream fileToMove, Path newCurrentExecutableFolder, String filePathInJAR, String folderPathInJar) throws SharedConfigConfigurerException {
         // get fileName from two paths
