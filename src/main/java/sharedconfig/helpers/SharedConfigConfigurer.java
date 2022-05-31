@@ -19,8 +19,8 @@ public class SharedConfigConfigurer {
      * Если нет - ничего не делает
      *
      * @param packageMarkerType класс из сборки, в которой лежит директория с конфигурацией
-     * @param folderName имя директории в которой лежит конфигурация
-     * @return current executable folder возвращает путь к исполняемому коду ?
+     * @param folderName        имя директории в которой лежит конфигурация
+     * @return current executable folder возвращает путь к исполняемому коду
      */
     public static String ensureConfigurationFilesExtracted(Class packageMarkerType, String folderName) throws SharedConfigConfigurerException {
         log.info("Trying to ensure configuration files extracted");
@@ -28,21 +28,24 @@ public class SharedConfigConfigurer {
         var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
         var currentExecutableFolder = currentExecutable.isDirectory() ? currentExecutable.toString() : currentExecutable.getParentFile().toString();
 
-        if (!currentExecutable.isDirectory())
-            extractConfigurationFolder(packageMarkerType, folderName, currentExecutable);
-
-        return currentExecutableFolder;
+        if (currentExecutable.isDirectory())
+            return FileHelper.combinePaths(currentExecutableFolder, folderName).toString();
+        if (currentExecutable.getName().endsWith(".jar"))
+            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable).toString();
+        else
+            throw new SharedConfigConfigurerException("Unsupported packaging type");
     }
 
     /**
-     *  Extract all configuration files from folderName
+     * Extract all configuration files from folderName
      *
      * @param packageMarkerType класс из сборки, в которой лежит директория с конфигурацией
-     * @param folderName имя директории в которой лежит конфигурация
+     * @param folderName        имя директории в которой лежит конфигурация
      * @param currentExecutable исполняемый файл
+     * @return возвращает новую директорию с конфигурационными файлами
      * @throws SharedConfigConfigurerException
      */
-    private static void extractConfigurationFolder (Class packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
+    private static Path extractConfigurationFolderFromJar(Class packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
         try {
             var jarPath = "/" + currentExecutable.toString().replace('\\', '/');
             var jarName = currentExecutable.getName();
@@ -69,9 +72,10 @@ public class SharedConfigConfigurer {
                 // move a file to newCurrentExecutableFolder
                 moveFile(is, newCurrentExecutableFolder, filePathInJAR, folderPathInJar);
             }
+            return newCurrentExecutableFolder;
 
         } catch (URISyntaxException | IOException | SharedConfigConfigurerException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось извлечь папку c конфигурацией: [%s], из jar файла! [%s]", folderName, e));
+            throw new SharedConfigConfigurerException(String.format("Не удалось извлечь папку c конфигурацией: [%s], из jar файла!", folderName), e);
         }
     }
 
@@ -79,8 +83,8 @@ public class SharedConfigConfigurer {
      * Get path folder in jar
      *
      * @param packageMarkerType класс из сборки, в которой лежит директория с конфигурацией
-     * @param jarPath путь к исполняемому jar файлу
-     * @param folderName имя директории в которой лежит конфигурация
+     * @param jarPath           путь к исполняемому jar файлу
+     * @param folderName        имя директории в которой лежит конфигурация
      * @return возвращает путь директория внутри jar файла
      */
     private static String getFolderPathInJar(Class packageMarkerType, String jarPath, String folderName) {
@@ -104,9 +108,9 @@ public class SharedConfigConfigurer {
     /**
      * Get all paths from a folderPathInJar that inside the JAR file
      *
-     * @param jarPath путь к исполняемому jar файлу
+     * @param jarPath         путь к исполняемому jar файлу
      * @param folderPathInJar путь к директории в которой лежит конфигурация внутри исполняемого jar файла
-     * @return  возвращает пути до конфигурационных файлов внутри jar файла
+     * @return возвращает пути до конфигурационных файлов внутри jar файла
      * @throws URISyntaxException
      * @throws IOException
      * @throws SharedConfigConfigurerException
@@ -124,7 +128,7 @@ public class SharedConfigConfigurer {
                     .collect(Collectors.toList());
             return result;
         } catch (NoSuchFileException e) {
-            throw new SharedConfigConfigurerException(String.format("В jar файле путь: [%s] не обнаружен", folderPathInJar));
+            throw new SharedConfigConfigurerException(String.format("В jar файле путь: [%s] не обнаружен", folderPathInJar), e);
         } catch (IOException e) {
             throw new SharedConfigConfigurerException(e);
         }
@@ -155,8 +159,8 @@ public class SharedConfigConfigurer {
     /**
      * Create new folder in jarPath
      *
-     * @param jarPath путь к исполняемому jar файлу
-     * @param jarName имя jar файла
+     * @param jarPath    путь к исполняемому jar файлу
+     * @param jarName    имя jar файла
      * @param folderName имя директории в которой лежит конфигурация
      * @return возвращает новую деррикторию
      * @throws SharedConfigConfigurerException
@@ -174,7 +178,7 @@ public class SharedConfigConfigurer {
         try {
             Files.createDirectories(newCurrentExecutableFolderPath);
         } catch (IOException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolderPath));
+            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolderPath), e);
         }
         log.info("newCurrentExecutableFolder {} ", newCurrentExecutableFolderPath);
         return newCurrentExecutableFolderPath;
@@ -183,10 +187,10 @@ public class SharedConfigConfigurer {
     /**
      * Move file in new folder
      *
-     * @param fileToMove файл который нужно переместить
+     * @param fileToMove                 файл который нужно переместить
      * @param newCurrentExecutableFolder новый путь по которому нужно переместить файл
-     * @param filePathInJAR путь файла для перемещения в jar файле
-     * @param folderPathInJar путь к директории в которой лежит конфигурация внутри исполняемого jar файла
+     * @param filePathInJAR              путь файла для перемещения в jar файле
+     * @param folderPathInJar            путь к директории в которой лежит конфигурация внутри исполняемого jar файла
      * @throws SharedConfigConfigurerException
      */
     private static void moveFile(InputStream fileToMove, Path newCurrentExecutableFolder, String filePathInJAR, String folderPathInJar) throws SharedConfigConfigurerException {
@@ -202,7 +206,7 @@ public class SharedConfigConfigurer {
         try {
             Files.write(appDeclXmlCopyPath, appDeclXmlContent, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось записать файл: [%s] по пути : [%s]", fileName, appDeclXmlCopyPath));
+            throw new SharedConfigConfigurerException(String.format("Не удалось записать файл: [%s] по пути : [%s]", fileName, appDeclXmlCopyPath), e);
         }
         log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
     }
