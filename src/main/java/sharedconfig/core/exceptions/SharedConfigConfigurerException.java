@@ -3,20 +3,20 @@ package sharedconfig.core.exceptions;
 import lombok.experimental.StandardException;
 
 @StandardException
-public class SharedConfigException extends Exception {
-    public SharedConfigException() {
+public class SharedConfigConfigurerException extends Exception {
+    public SharedConfigConfigurerException() {
         this(null, null);
     }
 
-    public SharedConfigException(String message) {
+    public SharedConfigConfigurerException(String message) {
         this(message, null);
     }
 
-    public SharedConfigException(Throwable cause) {
+    public SharedConfigConfigurerException(Throwable cause) {
         this(cause != null ? cause.getMessage() : null, cause);
     }
 
-    public SharedConfigException(String message, Throwable cause) {
+    public SharedConfigConfigurerException(String message, Throwable cause) {
         super(message);
         if (cause != null)
             super.initCause(cause);
