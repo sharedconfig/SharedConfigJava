@@ -6,10 +6,12 @@ import sharedconfig.core.exceptions.SharedConfigConfigurerException;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -22,7 +24,7 @@ public class SharedConfigConfigurer {
      * @param folderName        имя директории в которой лежит конфигурация
      * @return current executable folder возвращает путь к исполняемому коду
      */
-    public static String ensureConfigurationFilesExtracted(Class packageMarkerType, String folderName) throws SharedConfigConfigurerException {
+    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String folderName) throws SharedConfigConfigurerException {
         log.info("Trying to ensure configuration files extracted");
 
         var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
@@ -32,8 +34,8 @@ public class SharedConfigConfigurer {
             return FileHelper.combinePaths(currentExecutableFolder, folderName).toString();
         if (currentExecutable.getName().endsWith(".jar"))
             return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable).toString();
-        else
-            throw new SharedConfigConfigurerException("Unsupported packaging type");
+
+        throw new SharedConfigConfigurerException("Unsupported packaging type");
     }
 
     /**
@@ -45,7 +47,7 @@ public class SharedConfigConfigurer {
      * @return возвращает новую директорию с конфигурационными файлами
      * @throws SharedConfigConfigurerException
      */
-    private static Path extractConfigurationFolderFromJar(Class packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
+    private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
         try {
             var jarPath = "/" + currentExecutable.toString().replace('\\', '/');
             var jarName = currentExecutable.getName();
@@ -87,8 +89,10 @@ public class SharedConfigConfigurer {
      * @param folderName        имя директории в которой лежит конфигурация
      * @return возвращает путь директория внутри jar файла
      */
-    private static String getFolderPathInJar(Class packageMarkerType, String jarPath, String folderName) {
-        var folderPathInJar = packageMarkerType.getClassLoader().getResource(folderName).getPath();
+    private static String getFolderPathInJar(Class<?> packageMarkerType, String jarPath, String folderName) throws SharedConfigConfigurerException {
+        var folderPathInJar = Optional.ofNullable(packageMarkerType.getClassLoader().getResource(folderName))
+                .map(URL::getPath)
+                .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName));
         log.info("folderPathInJar: {}", folderPathInJar);
 
         if (folderPathInJar.startsWith("file:")) {
@@ -170,7 +174,7 @@ public class SharedConfigConfigurer {
         if (jarPath.startsWith("/")) {
             jarPath = jarPath.substring(1, jarPath.length());
         }
-        jarPath.replace('\\', '/');
+        jarPath = jarPath.replace('\\', '/');
         var currentExecutableFolder = jarPath.replaceAll(jarName, "");
         var newCurrentExecutableFolder = currentExecutableFolder + folderName;
 
