@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Log4j2
 public class SharedConfigConfigurer {
@@ -26,16 +25,19 @@ public class SharedConfigConfigurer {
      * @return current executable folder возвращает путь к исполняемому коду
      */
     public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String folderName) throws SharedConfigConfigurerException {
-        log.info("Trying to ensure configuration files extracted");
+        log.debug("Trying to ensure configuration files extracted");
 
         var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
         var currentExecutableFolder = currentExecutable.isDirectory() ? currentExecutable.toString() : currentExecutable.getParentFile().toString();
 
-        if (currentExecutable.isDirectory())
+        if (currentExecutable.isDirectory()) {
+            log.info("Found directory enviroment");
             return FileHelper.combinePaths(currentExecutableFolder, folderName).toString();
-        if (currentExecutable.getName().endsWith(".jar"))
+        }
+        if (currentExecutable.getName().endsWith(".jar")) {
+            log.info("Found jar enviroment: {}", currentExecutable.getName());
             return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable).toString();
-
+        }
         throw new SharedConfigConfigurerException("Unsupported packaging type");
     }
 
@@ -52,14 +54,14 @@ public class SharedConfigConfigurer {
         try {
             var jarPath = "/" + currentExecutable.toString().replace('\\', '/');
             var jarName = currentExecutable.getName();
-            log.info("Jar Name: {}", jarName);
+            log.debug("Jar Name: {}", jarName);
 
             // get paths from src/main/resources/up-configuration
             var folderPathInJar = getFolderPathInJar(packageMarkerType, jarPath, folderName);
             var result = getPathsFromResourceJAR(jarPath, folderPathInJar);
             var newCurrentExecutableFolder = createFolder(jarPath, jarName, folderName);
             for (Path path : result) {
-                log.info("Path: {} ", path);
+                log.debug("Path: {} ", path);
 
                 var filePathInJAR = path.toString();
                 // Windows will returns /up-configuration/file1.json, cut the first /
@@ -68,7 +70,7 @@ public class SharedConfigConfigurer {
                     filePathInJAR = filePathInJAR.substring(1);
                 }
 
-                log.info("filePathInJAR: {} ", filePathInJAR);
+                log.debug("filePathInJAR: {} ", filePathInJAR);
 
                 // read a file from resource folder
                 var is = getFileFromResourceAsStream(filePathInJAR);
@@ -94,7 +96,7 @@ public class SharedConfigConfigurer {
         var folderPathInJar = Optional.ofNullable(packageMarkerType.getClassLoader().getResource(folderName))
                 .map(URL::getPath)
                 .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName)));
-        log.info("folderPathInJar: {}", folderPathInJar);
+        log.debug("folderPathInJar: {}", folderPathInJar);
 
         if (folderPathInJar.startsWith("file:")) {
             folderPathInJar = folderPathInJar.replaceAll("file:", "");
@@ -106,7 +108,7 @@ public class SharedConfigConfigurer {
         if (folderPathInJar.startsWith("/")) {
             folderPathInJar = folderPathInJar.substring(1);
         }
-        log.info("Folder In Jar: {}", folderPathInJar);
+        log.debug("Folder In Jar: {}", folderPathInJar);
         return folderPathInJar;
     }
 
@@ -123,7 +125,7 @@ public class SharedConfigConfigurer {
     private static List<Path> getPathsFromResourceJAR(String jarPath, String folderPathInJar) throws URISyntaxException, IOException, SharedConfigConfigurerException {
 
         List<Path> result;
-        log.info("JAR Path: {} ", jarPath);
+        log.debug("JAR Path: {} ", jarPath);
 
         // file walks JAR
         var uri = URI.create("jar:file:" + jarPath);
@@ -187,7 +189,7 @@ public class SharedConfigConfigurer {
         } catch (IOException e) {
             throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolderPath), e);
         }
-        log.info("newCurrentExecutableFolder {} ", newCurrentExecutableFolderPath);
+        log.debug("newCurrentExecutableFolder {} ", newCurrentExecutableFolderPath);
         return newCurrentExecutableFolderPath;
     }
 
@@ -205,7 +207,7 @@ public class SharedConfigConfigurer {
         var pathFolder = Paths.get(folderPathInJar);
         var pathFilePathInJAR = Paths.get(filePathInJAR);
         var fileName = pathFolder.relativize(pathFilePathInJAR);
-        log.info("fileName: {}", fileName);
+        log.debug("fileName: {}", fileName);
 
         var streamReader = new InputStreamReader(fileToMove, StandardCharsets.UTF_8);
         var appDeclXmlContent = new BufferedReader(streamReader).lines().collect(Collectors.toList());
