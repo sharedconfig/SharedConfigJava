@@ -179,18 +179,17 @@ public class SharedConfigConfigurer {
         }
         jarPath = jarPath.replace('\\', '/');
         var currentExecutableFolder = jarPath.replaceAll(jarName, "");
-        var newCurrentExecutableFolder = currentExecutableFolder + folderName;
-        var newCurrentExecutableFolderPath = Paths.get(newCurrentExecutableFolder);
+        var newCurrentExecutableFolder = FileHelper.combinePaths(currentExecutableFolder, folderName);
         // очищаем директории после предыдущего запуска
-        clearDirectory(newCurrentExecutableFolderPath);
+        clearDirectory(newCurrentExecutableFolder);
 
         try {
-            Files.createDirectories(newCurrentExecutableFolderPath);
+            Files.createDirectories(newCurrentExecutableFolder);
         } catch (IOException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolderPath), e);
+            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolder), e);
         }
-        log.debug("newCurrentExecutableFolder {} ", newCurrentExecutableFolderPath);
-        return newCurrentExecutableFolderPath;
+        log.debug("newCurrentExecutableFolder {} ", newCurrentExecutableFolder);
+        return newCurrentExecutableFolder;
     }
 
     /**
@@ -220,9 +219,13 @@ public class SharedConfigConfigurer {
         log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
     }
 
-    private static void clearDirectory(Path newCurrentExecutableFolderPath) {
-        if (Files.exists(newCurrentExecutableFolderPath)) {
-            Helper.deleteDirectoryContent(newCurrentExecutableFolderPath.toString());
-        }
+    /**
+     * Clear newCurrentExecutableFolder from old configuration files
+     *
+     * @param newCurrentExecutableFolder новый путь для конфигурационной директории
+     */
+    private static void clearDirectory(Path newCurrentExecutableFolder) {
+        if (Files.exists(newCurrentExecutableFolder))
+            Helper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
     }
 }

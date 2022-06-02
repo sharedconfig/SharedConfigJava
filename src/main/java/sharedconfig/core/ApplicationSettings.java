@@ -79,7 +79,7 @@ public class ApplicationSettings {
             if (Files.notExists(basePathProcessed))
                 throw new ApplicationSettingsCreationException(String.format("Не найдена базовая директория директория: [%s]", basePathProcessed.toAbsolutePath()));
             if (!storagePathProcessed.isAbsolute())
-                storagePathProcessed = FileHelper.combinePaths(basePathProcessed.getParent().toString(), storagePathProcessed.toString()).toAbsolutePath();
+                storagePathProcessed = FileHelper.combinePaths(basePathProcessed.toString(), storagePathProcessed.toString()).toAbsolutePath();
             if (!Files.exists(storagePathProcessed) && !storagePathProcessed.toFile().mkdir())
                 throw new ApplicationSettingsCreationException(String.format("Не найдена директория [%s] или невозможно ее создать", storagePathProcessed.toAbsolutePath()));
 
