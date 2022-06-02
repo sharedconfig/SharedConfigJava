@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Log4j2
 public class SharedConfigConfigurer {
@@ -169,7 +170,7 @@ public class SharedConfigConfigurer {
      * @return возвращает новую деррикторию
      * @throws SharedConfigConfigurerException если не удалось создать новую дирректорию
      */
-    private static Path createFolder(String jarPath, String jarName, String folderName) throws SharedConfigConfigurerException {
+    private static Path createFolder(String jarPath, String jarName, String folderName) throws SharedConfigConfigurerException, IOException {
         // get newCurrentExecutableFolder from jarPath
         if (jarPath.startsWith("/")) {
             jarPath = jarPath.substring(1);
@@ -177,8 +178,10 @@ public class SharedConfigConfigurer {
         jarPath = jarPath.replace('\\', '/');
         var currentExecutableFolder = jarPath.replaceAll(jarName, "");
         var newCurrentExecutableFolder = currentExecutableFolder + folderName;
-
         var newCurrentExecutableFolderPath = Paths.get(newCurrentExecutableFolder);
+        // очищаем директории после предыдущего запуска
+        clearDirectory(newCurrentExecutableFolderPath);
+
         try {
             Files.createDirectories(newCurrentExecutableFolderPath);
         } catch (IOException e) {
@@ -213,5 +216,11 @@ public class SharedConfigConfigurer {
             throw new SharedConfigConfigurerException(String.format("Не удалось записать файл: [%s] по пути : [%s]", fileName, appDeclXmlCopyPath), e);
         }
         log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
+    }
+
+    private static void clearDirectory(Path newCurrentExecutableFolderPath) {
+        if (Files.exists(newCurrentExecutableFolderPath)) {
+            Helper.deleteDirectoryContent(newCurrentExecutableFolderPath.toString());
+        }
     }
 }
