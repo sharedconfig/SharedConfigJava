@@ -64,6 +64,26 @@ public class FileHelper {
         return readFile(path, StandardCharsets.UTF_8);
     }
 
+    public static void deleteDirectoryContent(String dir) {
+        var directory = Path.of(dir).toFile();
+        File[] allContents = directory.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+    }
+
+    private static boolean deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
+    }
+
     public static String removeIncorrectPathChars(String path) {
         return path.replaceAll("[^A-Za-z0-9_ ]", "");
     }

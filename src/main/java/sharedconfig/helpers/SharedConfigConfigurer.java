@@ -18,14 +18,28 @@ import java.util.stream.Stream;
 @Log4j2
 public class SharedConfigConfigurer {
     /**
-     * Если приложение запущено в контексте jar - извлекает директорию up-configuration с конфигурационными файлами xml в папку с jar
+     * Если приложение запущено в контексте jar - извлекает директорию up-configuration с конфигурационными файлами xml в директорию с jar
      * Если нет - ничего не делает
      *
-     * @param packageMarkerType класс из сборки, в которой лежит директория с конфигурацией
-     * @param folderName        имя директории в которой лежит конфигурация
+     * @param packageMarkerType  класс из сборки, в которой лежит директория с конфигурацией
+     * @param resourceFolderName имя директории в которой лежит конфигурация
      * @return current executable folder возвращает путь к исполняемому коду
      */
-    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String folderName) throws SharedConfigConfigurerException {
+    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String resourceFolderName) throws SharedConfigConfigurerException {
+        return ensureConfigurationFilesExtracted(packageMarkerType, resourceFolderName, resourceFolderName);
+    }
+
+    /**
+     * Если приложение запущено в контексте jar - извлекает директорию up-configuration с конфигурационными файлами xml в targetFolderName
+     * Если нет - ничего не делает
+     *
+     * @param packageMarkerType  класс из сборки, в которой лежит директория с конфигурацией
+     * @param resourceFolderName имя директории в которой лежит конфигурация
+     * @param targetFolderName   имя директории в которой будет распаковываться конфигурация из jar
+     * @return current executable folder возвращает путь к исполняемому коду
+     * @throws SharedConfigConfigurerException
+     */
+    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String resourceFolderName, String targetFolderName) throws SharedConfigConfigurerException {
         log.debug("Trying to ensure configuration files extracted");
 
         var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
@@ -33,28 +47,11 @@ public class SharedConfigConfigurer {
 
         if (currentExecutable.isDirectory()) {
             log.info("Found directory enviroment");
-            return FileHelper.combinePaths(currentExecutableFolder, folderName).toString();
+            return FileHelper.combinePaths(currentExecutableFolder, resourceFolderName).toString();
         }
         if (currentExecutable.getName().endsWith(".jar")) {
             log.info("Found jar enviroment: {}", currentExecutable.getName());
-            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable, null).toString();
-        }
-        throw new SharedConfigConfigurerException("Unsupported packaging type");
-    }
-
-    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String folderName, String extractConfigurationPath) throws SharedConfigConfigurerException {
-        log.debug("Trying to ensure configuration files extracted");
-
-        var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
-//        var currentExecutableFolder = currentExecutable.isDirectory() ? currentExecutable.toString() : currentExecutable.getParentFile().toString();
-
-        if (currentExecutable.isDirectory()) {
-            log.info("Found directory enviroment");
-            return extractConfigurationPath;
-        }
-        if (currentExecutable.getName().endsWith(".jar")) {
-            log.info("Found jar enviroment: {}", currentExecutable.getName());
-            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable, Paths.get(extractConfigurationPath)).toString();
+            return extractConfigurationFolderFromJar(packageMarkerType, resourceFolderName, currentExecutable, Paths.get(targetFolderName)).toString();
         }
         throw new SharedConfigConfigurerException("Unsupported packaging type");
     }
@@ -192,17 +189,13 @@ public class SharedConfigConfigurer {
      */
     private static Path createFolder(String jarPath, String jarName, String folderName, Path extractConfigurationPath) throws SharedConfigConfigurerException, IOException {
         // get newCurrentExecutableFolder from jarPath
-        if (extractConfigurationPath == null) {
+        if (extractConfigurationPath.toString().equals(folderName)) {
             if (jarPath.startsWith("/")) {
                 jarPath = jarPath.substring(1);
             }
             jarPath = jarPath.replace('\\', '/');
             var currentExecutableFolder = jarPath.replaceAll(jarName, "");
             extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder, folderName);
-        }
-
-        if (Files.exists(extractConfigurationPath)) {
-            log.info("Some files here: {}", listFiles(extractConfigurationPath));
         }
 
         // очищаем директории после предыдущего запуска
@@ -251,16 +244,6 @@ public class SharedConfigConfigurer {
      */
     private static void clearDirectory(Path newCurrentExecutableFolder) {
         if (Files.exists(newCurrentExecutableFolder))
-            Helper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
-    }
-
-    private static List<Path> listFiles(Path path) throws IOException {
-
-        List<Path> result;
-        try (Stream<Path> walk = Files.walk(path)) {
-            result = walk.filter(Files::isRegularFile)
-                    .collect(Collectors.toList());
-        }
-        return result;
+            FileHelper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
     }
 }
