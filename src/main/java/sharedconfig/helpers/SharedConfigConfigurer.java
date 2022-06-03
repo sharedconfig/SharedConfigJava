@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Log4j2
 public class SharedConfigConfigurer {
@@ -36,7 +37,24 @@ public class SharedConfigConfigurer {
         }
         if (currentExecutable.getName().endsWith(".jar")) {
             log.info("Found jar enviroment: {}", currentExecutable.getName());
-            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable).toString();
+            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable, null).toString();
+        }
+        throw new SharedConfigConfigurerException("Unsupported packaging type");
+    }
+
+    public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String folderName, String extractConfigurationPath) throws SharedConfigConfigurerException {
+        log.debug("Trying to ensure configuration files extracted");
+
+        var currentExecutable = ClassLocationHelper.urlToFile(ClassLocationHelper.getLocation(packageMarkerType));
+//        var currentExecutableFolder = currentExecutable.isDirectory() ? currentExecutable.toString() : currentExecutable.getParentFile().toString();
+
+        if (currentExecutable.isDirectory()) {
+            log.info("Found directory enviroment");
+            return extractConfigurationPath;
+        }
+        if (currentExecutable.getName().endsWith(".jar")) {
+            log.info("Found jar enviroment: {}", currentExecutable.getName());
+            return extractConfigurationFolderFromJar(packageMarkerType, folderName, currentExecutable, Paths.get(extractConfigurationPath)).toString();
         }
         throw new SharedConfigConfigurerException("Unsupported packaging type");
     }
@@ -50,7 +68,7 @@ public class SharedConfigConfigurer {
      * @return возвращает новую директорию с конфигурационными файлами
      * @throws SharedConfigConfigurerException если не получилось извлечь файлы из jar файла
      */
-    private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable) throws SharedConfigConfigurerException {
+    private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable, Path extractConfigurationPath) throws SharedConfigConfigurerException {
         try {
             var jarPath = "/" + currentExecutable.toString().replace('\\', '/');
             var jarName = currentExecutable.getName();
@@ -59,7 +77,7 @@ public class SharedConfigConfigurer {
             // get paths from src/main/resources/up-configuration
             var folderPathInJar = getFolderPathInJar(packageMarkerType, jarPath, folderName);
             var result = getPathsFromResourceJAR(jarPath, folderPathInJar);
-            var newCurrentExecutableFolder = createFolder(jarPath, jarName, folderName);
+            var newCurrentExecutableFolder = createFolder(jarPath, jarName, folderName, extractConfigurationPath);
             for (Path path : result) {
                 log.debug("Path: {} ", path);
 
@@ -164,7 +182,7 @@ public class SharedConfigConfigurer {
     }
 
     /**
-     * Create new folder in jarPath
+     * Create new folder near jar
      *
      * @param jarPath    путь к исполняемому jar файлу
      * @param jarName    имя jar файла
@@ -172,24 +190,31 @@ public class SharedConfigConfigurer {
      * @return возвращает новую деррикторию
      * @throws SharedConfigConfigurerException если не удалось создать новую дирректорию
      */
-    private static Path createFolder(String jarPath, String jarName, String folderName) throws SharedConfigConfigurerException, IOException {
+    private static Path createFolder(String jarPath, String jarName, String folderName, Path extractConfigurationPath) throws SharedConfigConfigurerException, IOException {
         // get newCurrentExecutableFolder from jarPath
-        if (jarPath.startsWith("/")) {
-            jarPath = jarPath.substring(1);
+        if (extractConfigurationPath == null) {
+            if (jarPath.startsWith("/")) {
+                jarPath = jarPath.substring(1);
+            }
+            jarPath = jarPath.replace('\\', '/');
+            var currentExecutableFolder = jarPath.replaceAll(jarName, "");
+            extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder, folderName);
         }
-        jarPath = jarPath.replace('\\', '/');
-        var currentExecutableFolder = jarPath.replaceAll(jarName, "");
-        var newCurrentExecutableFolder = FileHelper.combinePaths(currentExecutableFolder, folderName);
+
+        if (Files.exists(extractConfigurationPath)) {
+            log.info("Some files here: {}", listFiles(extractConfigurationPath));
+        }
+
         // очищаем директории после предыдущего запуска
-        clearDirectory(newCurrentExecutableFolder);
+        clearDirectory(extractConfigurationPath);
 
         try {
-            Files.createDirectories(newCurrentExecutableFolder);
+            Files.createDirectories(extractConfigurationPath);
         } catch (IOException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", newCurrentExecutableFolder), e);
+            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", extractConfigurationPath), e);
         }
-        log.debug("newCurrentExecutableFolder {} ", newCurrentExecutableFolder);
-        return newCurrentExecutableFolder;
+        log.debug("newCurrentExecutableFolder {} ", extractConfigurationPath);
+        return extractConfigurationPath;
     }
 
     /**
@@ -227,5 +252,15 @@ public class SharedConfigConfigurer {
     private static void clearDirectory(Path newCurrentExecutableFolder) {
         if (Files.exists(newCurrentExecutableFolder))
             Helper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
+    }
+
+    private static List<Path> listFiles(Path path) throws IOException {
+
+        List<Path> result;
+        try (Stream<Path> walk = Files.walk(path)) {
+            result = walk.filter(Files::isRegularFile)
+                    .collect(Collectors.toList());
+        }
+        return result;
     }
 }
