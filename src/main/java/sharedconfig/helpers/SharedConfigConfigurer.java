@@ -74,7 +74,7 @@ public class SharedConfigConfigurer {
             // get paths from src/main/resources/up-configuration
             var folderPathInJar = getFolderPathInJar(packageMarkerType, jarPath, folderName);
             var result = getPathsFromResourceJAR(jarPath, folderPathInJar);
-            var newCurrentExecutableFolder = createFolder(jarPath, jarName, folderName, extractConfigurationPath);
+            var newCurrentExecutableFolder = createNewExtractConfigurationPath(jarPath, folderName, extractConfigurationPath);
             for (Path path : result) {
                 log.debug("Path: {} ", path);
 
@@ -179,33 +179,27 @@ public class SharedConfigConfigurer {
     }
 
     /**
-     * Create new folder near jar
+     * Create new path near jar
      *
-     * @param jarPath    путь к исполняемому jar файлу
-     * @param jarName    имя jar файла
+     * @param jarPath путь к исполняемому jar файлу
      * @param folderName имя директории в которой лежит конфигурация
-     * @return возвращает новую деррикторию
-     * @throws SharedConfigConfigurerException если не удалось создать новую дирректорию
+     * @param extractConfigurationPath путь извлечения директории с конфигурацией
+     * @return возвращает путь новой директории находящейся возле jar
      */
-    private static Path createFolder(String jarPath, String jarName, String folderName, Path extractConfigurationPath) throws SharedConfigConfigurerException, IOException {
+    private static Path createNewExtractConfigurationPath(String jarPath, String folderName, Path extractConfigurationPath) {
         // get newCurrentExecutableFolder from jarPath
         if (extractConfigurationPath.toString().equals(folderName)) {
             if (jarPath.startsWith("/")) {
                 jarPath = jarPath.substring(1);
             }
             jarPath = jarPath.replace('\\', '/');
-            var currentExecutableFolder = jarPath.replaceAll(jarName, "");
-            extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder, folderName);
+            var currentExecutableFolder = Paths.get(jarPath).getParent();
+            extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder.toString(), folderName);
         }
 
         // очищаем директории после предыдущего запуска
         clearDirectory(extractConfigurationPath);
 
-        try {
-            Files.createDirectories(extractConfigurationPath);
-        } catch (IOException e) {
-            throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", extractConfigurationPath), e);
-        }
         log.debug("newCurrentExecutableFolder {} ", extractConfigurationPath);
         return extractConfigurationPath;
     }
@@ -213,10 +207,10 @@ public class SharedConfigConfigurer {
     /**
      * Move file in new folder
      *
-     * @param fileToMove                 файл который нужно переместить
+     * @param fileToMove      файл который нужно переместить
      * @param newCurrentExecutableFolder новый путь по которому нужно переместить файл
-     * @param filePathInJAR              путь файла для перемещения в jar файле
-     * @param folderPathInJar            путь к директории в которой лежит конфигурация внутри исполняемого jar файла
+     * @param filePathInJAR   путь файла для перемещения в jar файле
+     * @param folderPathInJar путь к директории в которой лежит конфигурация внутри исполняемого jar файла
      * @throws SharedConfigConfigurerException если не удалось записать файл по заданному пути
      */
     private static void moveFile(InputStream fileToMove, Path newCurrentExecutableFolder, String filePathInJAR, String folderPathInJar) throws SharedConfigConfigurerException {
@@ -229,6 +223,14 @@ public class SharedConfigConfigurer {
         var streamReader = new InputStreamReader(fileToMove, StandardCharsets.UTF_8);
         var appDeclXmlContent = new BufferedReader(streamReader).lines().collect(Collectors.toList());
         var appDeclXmlCopyPath = FileHelper.combinePaths(newCurrentExecutableFolder.toString(), fileName.toString());
+        // создаем папку если она не существует
+        if (!Files.exists(appDeclXmlCopyPath.getParent()))
+            try {
+                Files.createDirectories(appDeclXmlCopyPath.getParent());
+            } catch (IOException e) {
+                throw new SharedConfigConfigurerException(String.format("Не удалось созадать новую дирректорию: [%s]", appDeclXmlCopyPath.getParent()), e);
+            }
+
         try {
             Files.write(appDeclXmlCopyPath, appDeclXmlContent, StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -246,4 +248,5 @@ public class SharedConfigConfigurer {
         if (Files.exists(newCurrentExecutableFolder))
             FileHelper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
     }
+
 }
