@@ -67,8 +67,6 @@ public class SharedConfigConfigurer {
     private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable, Path extractConfigurationPath) throws SharedConfigConfigurerException {
         try {
             var jarPath = currentExecutable.toString().replace('\\', '/');
-            if (!currentExecutable.toString().startsWith("/"))
-                jarPath = "/" + jarPath;
             var jarName = currentExecutable.getName();
             log.debug("Jar Name: {}", jarName);
 
@@ -115,13 +113,13 @@ public class SharedConfigConfigurer {
         log.debug("folderPathInJar: {}", folderPathInJar);
 
         if (folderPathInJar.startsWith("file:")) {
-            folderPathInJar = folderPathInJar.replaceAll("file:", "");
+            folderPathInJar = folderPathInJar.replaceAll("file:/", "");
             folderPathInJar = folderPathInJar.replaceAll("!", "");
         }
         if (folderPathInJar.startsWith(jarPath)) {
             folderPathInJar = folderPathInJar.replaceAll(jarPath, "");
         }
-        if (folderPathInJar.startsWith("/")) {
+        if (folderPathInJar.startsWith("/")) {                         // проверить на линукс
             folderPathInJar = folderPathInJar.substring(1);
         }
         log.debug("Folder In Jar: {}", folderPathInJar);
@@ -140,15 +138,18 @@ public class SharedConfigConfigurer {
      */
     private static List<Path> getPathsFromResourceJAR(String jarPath, String folderPathInJar) throws URISyntaxException, IOException, SharedConfigConfigurerException {
 
+        List<Path> result;
         log.debug("JAR Path: {} ", jarPath);
 
+        var platformJarPath = jarPath.startsWith("/") ? jarPath : "/" + jarPath;
+        log.debug("platformJarPath: {} ", platformJarPath);
         // file walks JAR
-        var jarPathUri = URI.create("jar:file:" + jarPath);
-
-        try (var fs = FileSystems.newFileSystem(jarPathUri, Collections.emptyMap())) {
-            return Files.walk(fs.getPath(folderPathInJar))
+        var uri = URI.create("jar:file:" + platformJarPath);
+        try (var fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+            result = Files.walk(fs.getPath(folderPathInJar))
                     .filter(Files::isRegularFile)
                     .collect(Collectors.toList());
+            return result;
         } catch (NoSuchFileException e) {
             throw new SharedConfigConfigurerException(String.format("В jar файле путь: [%s] не обнаружен", folderPathInJar), e);
         } catch (IOException e) {
