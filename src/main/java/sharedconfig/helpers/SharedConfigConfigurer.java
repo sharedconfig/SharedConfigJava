@@ -18,26 +18,25 @@ import java.util.stream.Stream;
 @Log4j2
 public class SharedConfigConfigurer {
     /**
-     * Если приложение запущено в контексте jar - извлекает директорию up-configuration с конфигурационными файлами xml в директорию с jar
+     * Если приложение запущено в контексте jar - извлекает указанную директорию с конфигурационными файлами из ресурсов и перемещает ее в папку, в которой находится jar
      * Если нет - ничего не делает
      *
-     * @param packageMarkerType  класс из сборки, в которой лежит директория с конфигурацией
-     * @param resourceFolderName имя директории в которой лежит конфигурация
-     * @return current executable folder возвращает путь к исполняемому коду
+     * @param packageMarkerType   класс из сборки, в ресурсах которой лежит директория с конфигурационными файлами
+     * @param resourceFolderName относительный путь папке к директории с конфигурацией (отноcительно classpath)
+     * @return абсолютный путь к папке, в которую были извлечены файлы конфиграции
      */
     public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String resourceFolderName) throws SharedConfigConfigurerException {
         return ensureConfigurationFilesExtracted(packageMarkerType, resourceFolderName, resourceFolderName);
     }
 
     /**
-     * Если приложение запущено в контексте jar - извлекает директорию up-configuration с конфигурационными файлами xml в targetFolderName
+     * Если приложение запущено в контексте jar - извлекает указанную директорию с конфигурационными файлами из ресурсов и перемещает ее по указанному пути
      * Если нет - ничего не делает
      *
-     * @param packageMarkerType  класс из сборки, в которой лежит директория с конфигурацией
-     * @param resourceFolderName имя директории в которой лежит конфигурация
-     * @param targetFolderName   имя директории в которой будет распаковываться конфигурация из jar
-     * @return current executable folder возвращает путь к исполняемому коду
-     * @throws SharedConfigConfigurerException
+     * @param packageMarkerType  класс из сборки, в ресурсах которой лежит директория с конфигурационными файлами
+     * @param resourceFolderName относительный путь папке к директории с конфигурацией (отноcительно classpath)
+     * @param targetFolderName   относительный (относительно current execution folder) или абсолютный путь к директории, в которую будут извлечены конфигурационные файлы
+     * @return абсолютный путь к папке, в которую были извлечены файлы конфиграции
      */
     public static String ensureConfigurationFilesExtracted(Class<?> packageMarkerType, String resourceFolderName, String targetFolderName) throws SharedConfigConfigurerException {
         log.debug("Trying to ensure configuration files extracted");
@@ -67,7 +66,9 @@ public class SharedConfigConfigurer {
      */
     private static Path extractConfigurationFolderFromJar(Class<?> packageMarkerType, String folderName, File currentExecutable, Path extractConfigurationPath) throws SharedConfigConfigurerException {
         try {
-            var jarPath = "/" + currentExecutable.toString().replace('\\', '/');
+            var jarPath = currentExecutable.toString().replace('\\', '/');
+            if (!currentExecutable.toString().startsWith("/"))
+                jarPath = "/" + jarPath;
             var jarName = currentExecutable.getName();
             log.debug("Jar Name: {}", jarName);
 
@@ -139,16 +140,15 @@ public class SharedConfigConfigurer {
      */
     private static List<Path> getPathsFromResourceJAR(String jarPath, String folderPathInJar) throws URISyntaxException, IOException, SharedConfigConfigurerException {
 
-        List<Path> result;
         log.debug("JAR Path: {} ", jarPath);
 
         // file walks JAR
-        var uri = URI.create("jar:file:" + jarPath);
-        try (var fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-            result = Files.walk(fs.getPath(folderPathInJar))
+        var jarPathUri = URI.create("jar:file:" + jarPath);
+
+        try (var fs = FileSystems.newFileSystem(jarPathUri, Collections.emptyMap())) {
+            return Files.walk(fs.getPath(folderPathInJar))
                     .filter(Files::isRegularFile)
                     .collect(Collectors.toList());
-            return result;
         } catch (NoSuchFileException e) {
             throw new SharedConfigConfigurerException(String.format("В jar файле путь: [%s] не обнаружен", folderPathInJar), e);
         } catch (IOException e) {
@@ -181,24 +181,26 @@ public class SharedConfigConfigurer {
     /**
      * Create new path near jar
      *
-     * @param jarPath путь к исполняемому jar файлу
-     * @param folderName имя директории в которой лежит конфигурация
+     * @param jarPath                  путь к исполняемому jar файлу
+     * @param folderName               имя директории в которой лежит конфигурация
      * @param extractConfigurationPath путь извлечения директории с конфигурацией
      * @return возвращает путь новой директории находящейся возле jar
      */
     private static Path createNewExtractConfigurationPath(String jarPath, String folderName, Path extractConfigurationPath) {
         // get newCurrentExecutableFolder from jarPath
         if (extractConfigurationPath.toString().equals(folderName)) {
-            if (jarPath.startsWith("/")) {
-                jarPath = jarPath.substring(1);
-            }
+//            if (jarPath.startsWith("/")) {
+//                jarPath = jarPath.substring(1);
+//            }
             jarPath = jarPath.replace('\\', '/');
             var currentExecutableFolder = Paths.get(jarPath).getParent();
             extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder.toString(), folderName);
         }
 
         // очищаем директории после предыдущего запуска
-        clearDirectory(extractConfigurationPath);
+        if (Files.exists(extractConfigurationPath))
+            FileHelper.deleteDirectoryContent(extractConfigurationPath.toString());
+//        clearDirectory(extractConfigurationPath);
 
         log.debug("newCurrentExecutableFolder {} ", extractConfigurationPath);
         return extractConfigurationPath;
@@ -207,10 +209,10 @@ public class SharedConfigConfigurer {
     /**
      * Move file in new folder
      *
-     * @param fileToMove      файл который нужно переместить
+     * @param fileToMove                 файл который нужно переместить
      * @param newCurrentExecutableFolder новый путь по которому нужно переместить файл
-     * @param filePathInJAR   путь файла для перемещения в jar файле
-     * @param folderPathInJar путь к директории в которой лежит конфигурация внутри исполняемого jar файла
+     * @param filePathInJAR              путь файла для перемещения в jar файле
+     * @param folderPathInJar            путь к директории в которой лежит конфигурация внутри исполняемого jar файла
      * @throws SharedConfigConfigurerException если не удалось записать файл по заданному пути
      */
     private static void moveFile(InputStream fileToMove, Path newCurrentExecutableFolder, String filePathInJAR, String folderPathInJar) throws SharedConfigConfigurerException {
