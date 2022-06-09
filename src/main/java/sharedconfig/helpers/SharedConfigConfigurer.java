@@ -112,15 +112,14 @@ public class SharedConfigConfigurer {
                 .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName)));
         log.debug("folderPathInJar: {}", folderPathInJar);
 
-        if (folderPathInJar.startsWith("file:")) {
-            folderPathInJar = folderPathInJar.replaceAll("file:/", "");
-            folderPathInJar = folderPathInJar.replaceAll("!", "");
-        }
+        folderPathInJar = folderPathInJar.startsWith("file:") ? folderPathInJar.replaceAll("file:", "") : folderPathInJar.replaceAll("file:/", "");
+        folderPathInJar = folderPathInJar.replaceAll("!", "");
         if (folderPathInJar.startsWith(jarPath)) {
             folderPathInJar = folderPathInJar.replaceAll(jarPath, "");
         }
         if (folderPathInJar.startsWith("/")) {                         // проверить на линукс
             folderPathInJar = folderPathInJar.substring(1);
+            log.debug("Зашел сюда!!!!!!!!!!");
         }
         log.debug("Folder In Jar: {}", folderPathInJar);
         return folderPathInJar;
@@ -138,7 +137,6 @@ public class SharedConfigConfigurer {
      */
     private static List<Path> getPathsFromResourceJAR(String jarPath, String folderPathInJar) throws URISyntaxException, IOException, SharedConfigConfigurerException {
 
-        List<Path> result;
         log.debug("JAR Path: {} ", jarPath);
 
         var platformJarPath = jarPath.startsWith("/") ? jarPath : "/" + jarPath;
@@ -146,10 +144,9 @@ public class SharedConfigConfigurer {
         // file walks JAR
         var uri = URI.create("jar:file:" + platformJarPath);
         try (var fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-            result = Files.walk(fs.getPath(folderPathInJar))
+            return Files.walk(fs.getPath(folderPathInJar))
                     .filter(Files::isRegularFile)
                     .collect(Collectors.toList());
-            return result;
         } catch (NoSuchFileException e) {
             throw new SharedConfigConfigurerException(String.format("В jar файле путь: [%s] не обнаружен", folderPathInJar), e);
         } catch (IOException e) {
@@ -190,9 +187,6 @@ public class SharedConfigConfigurer {
     private static Path createNewExtractConfigurationPath(String jarPath, String folderName, Path extractConfigurationPath) {
         // get newCurrentExecutableFolder from jarPath
         if (extractConfigurationPath.toString().equals(folderName)) {
-//            if (jarPath.startsWith("/")) {
-//                jarPath = jarPath.substring(1);
-//            }
             jarPath = jarPath.replace('\\', '/');
             var currentExecutableFolder = Paths.get(jarPath).getParent();
             extractConfigurationPath = FileHelper.combinePaths(currentExecutableFolder.toString(), folderName);
@@ -201,7 +195,6 @@ public class SharedConfigConfigurer {
         // очищаем директории после предыдущего запуска
         if (Files.exists(extractConfigurationPath))
             FileHelper.deleteDirectoryContent(extractConfigurationPath.toString());
-//        clearDirectory(extractConfigurationPath);
 
         log.debug("newCurrentExecutableFolder {} ", extractConfigurationPath);
         return extractConfigurationPath;
@@ -240,16 +233,6 @@ public class SharedConfigConfigurer {
             throw new SharedConfigConfigurerException(String.format("Не удалось записать файл: [%s] по пути : [%s]", fileName, appDeclXmlCopyPath), e);
         }
         log.info("File {} moved to {}", fileName, appDeclXmlCopyPath);
-    }
-
-    /**
-     * Clear newCurrentExecutableFolder from old configuration files
-     *
-     * @param newCurrentExecutableFolder новый путь для конфигурационной директории
-     */
-    private static void clearDirectory(Path newCurrentExecutableFolder) {
-        if (Files.exists(newCurrentExecutableFolder))
-            FileHelper.deleteDirectoryContent(newCurrentExecutableFolder.toString());
     }
 
 }
