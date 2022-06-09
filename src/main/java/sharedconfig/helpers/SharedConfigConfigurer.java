@@ -112,7 +112,7 @@ public class SharedConfigConfigurer {
                 .orElseThrow(() -> new SharedConfigConfigurerException(String.format("Невозможно найти папку %s в ресурсах сборки", folderName)));
         log.debug("folderPathInJar: {}", folderPathInJar);
 
-        folderPathInJar = jarPath.startsWith("file:") ? folderPathInJar.replaceAll("file:", "") : folderPathInJar.replaceAll("file:/", "");
+        folderPathInJar = jarPath.startsWith("/") ? folderPathInJar.replaceAll("file:", "") : folderPathInJar.replaceAll("file:/", "");
         folderPathInJar = folderPathInJar.replaceAll("!", "");
         if (folderPathInJar.startsWith(jarPath)) {
             folderPathInJar = folderPathInJar.replaceAll(jarPath, "");
