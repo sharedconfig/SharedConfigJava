@@ -56,6 +56,7 @@ public class IntegrationTest1 {
     @Test
     void Test1() {
 
+        //SharedConfigHelperTwo.ensureConfigurationFilesExtracted("up-configuration");
         //LoggerConfigurer.redirectLogsToUPDefaultLocation("TestApp", "1.0.0");
 
         var applicationSettings = ApplicationSettings.create(
