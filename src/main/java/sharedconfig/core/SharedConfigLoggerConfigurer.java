@@ -23,7 +23,7 @@ public class SharedConfigLoggerConfigurer {
     public static void traceLogsToFile(@NotNull String appName, @NotNull String appVersion, @NotNull String outputFolderPath) {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
-        val layout = PatternLayout.newBuilder().withPattern("[%d] [%-5level] - %msg%n").build();
+        val layout = PatternLayout.newBuilder().withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" k=%-5level m=\"%M : %m\"%n").build();
         val appender = FileAppender.newBuilder()
                 .withFileName(outputFolderPath + appName + "_" + appVersion + "_" + new Date().getTime() + ".log")
                 .setName("sharedconfig-up-logs-appender")
