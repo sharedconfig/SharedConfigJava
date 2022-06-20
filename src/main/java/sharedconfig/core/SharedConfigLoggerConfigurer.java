@@ -4,7 +4,8 @@ import lombok.val;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.FileAppender;
+import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
 import org.apache.logging.log4j.core.config.AppenderRef;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
@@ -23,11 +24,9 @@ public class SharedConfigLoggerConfigurer {
      * Creates logger (named 'sharedconfig') that catches all sharedconfig's logs and targets them to
      * the file located at outputFolderPath
      *
-     * @param appName          application name
-     * @param appVersion       application version
      * @param outputFolderPath output logs folder location
      */
-    public static void traceLogsToFile(@NotNull String appName, @NotNull String appVersion, @NotNull String outputFolderPath) throws UnknownHostException, ParseException {
+    public static void traceLogsToFile(@NotNull String outputFolderPath) throws UnknownHostException, ParseException {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
 //      header
@@ -50,25 +49,27 @@ public class SharedConfigLoggerConfigurer {
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
                 .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" k=%-5level m=\"%M : %replace{%m}{\\\\}{\\\\\\\\}\"%n").build();
-        val appender = FileAppender.newBuilder()
-                .withFileName(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-" + "TLOG#" + ".tlog")
+        val rollingAppender = RollingFileAppender.newBuilder()
+                .withFileName(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#last.tlog")
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
                 .withBufferedIo(true)
                 .withImmediateFlush(false)
                 .withLocking(false)
+                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#%i.tlog")
                 .setIgnoreExceptions(false)
                 .setLayout(layout)
-                .setFilter(null)
+                .withPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"))
                 .build();
-        appender.start();
-        config.addAppender(appender);
+
+        rollingAppender.start();
+        config.addAppender(rollingAppender);
 
         val ref = AppenderRef.createAppenderRef("File", null, null);
         val refs = new AppenderRef[]{ref};
 
         val loggerConfig = LoggerConfig.createLogger(true, Level.ALL, "sharedconfig", null, refs, null, config, null);
-        loggerConfig.addAppender(appender, Level.TRACE, null);
+        loggerConfig.addAppender(rollingAppender, Level.TRACE, null);
 
         config.addLogger("sharedconfig", loggerConfig);
         val loggers = config.getLoggers();
@@ -79,16 +80,12 @@ public class SharedConfigLoggerConfigurer {
     /**
      * Creates logger (named 'sharedconfig') that catches all sharedconfigs' logs and targets them to
      * the file located at C:\\ProgramData\\universal-platform\\logs\\
-     *
-     * @param appName    application name
-     * @param appVersion application version
      */
-    public static void traceLogsToFileToUPWindowsDefaultLocation(@NotNull String appName, @NotNull String appVersion) throws UnknownHostException, ParseException {
-        traceLogsToFile(appName, appVersion, "C:\\ProgramData\\universal-platform\\logs\\");
+    public static void traceLogsToFileToUPWindowsDefaultLocation() throws UnknownHostException, ParseException {
+        traceLogsToFile("C:\\ProgramData\\universal-platform\\logs\\");
     }
 
     /**
-     *
      * @param string принимает строку для которой нужно расчитать хеш
      * @return возвращает расчитанный хеш для переданной строки
      */
@@ -102,4 +99,5 @@ public class SharedConfigLoggerConfigurer {
             return "";
         }
     }
+
 }
