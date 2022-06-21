@@ -48,7 +48,7 @@ public class SharedConfigLoggerConfigurer {
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
-                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" k=%-5level m=\"%M : %replace{%m}{\\\\}{\\\\\\\\}\"%n").build();
+                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" %level{WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %replace{%m}{\\\\}{\\\\\\\\}\"%n").build();
         val rollingAppender = RollingFileAppender.newBuilder()
                 .withFileName(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#last.tlog")
                 .setName("sharedconfig-up-logs-appender")
