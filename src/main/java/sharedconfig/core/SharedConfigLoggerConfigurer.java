@@ -18,6 +18,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 
 public class SharedConfigLoggerConfigurer {
     /**
@@ -29,22 +30,21 @@ public class SharedConfigLoggerConfigurer {
     public static void traceLogsToFile(@NotNull String outputFolderPath) throws UnknownHostException, ParseException {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
-//      header
+
         var computerName = InetAddress.getLocalHost().getHostName();
         ProcessHandle handle = ProcessHandle.current();
         ProcessHandle.Info info = handle.info();
-        var startTime = info.startInstant().isEmpty() ? "" : info.startInstant().get();
+        var startTime= info.startInstant().map(Instant::toString).orElse("");
         var pid = handle.pid();
         var processName = info.command().get().endsWith("java.exe") ? "java.exe" : "";
-        var commandArgs = info.arguments().isEmpty() ? "" : info.arguments().get();
+        var commandArgs = info.arguments().isEmpty() ? "" : '"' + info.arguments().get().toString() + '"';
         var argsHash = getHashMD5(computerName + processName + commandArgs + pid + startTime);
-//      header end
-//      work with date
+
         var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         var newFormat = new SimpleDateFormat("yyMMdd-HHmmss");
-        var oldDate = oldFormat.parse(startTime.toString());
+        var oldDate = oldFormat.parse(startTime);
         var newDate = newFormat.format(oldDate);
-//      end work with date
+
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
