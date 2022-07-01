@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.CompositeTriggeringPolicy;
+import org.apache.logging.log4j.core.appender.rolling.CronTriggeringPolicy;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
 import org.apache.logging.log4j.core.config.AppenderRef;
 import org.apache.logging.log4j.core.config.LoggerConfig;
@@ -50,16 +52,15 @@ public class SharedConfigLoggerConfigurer {
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
                 .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %replace{%m}{\\\\}{\\\\\\\\}\"%n").build();
         val rollingAppender = RollingFileAppender.newBuilder()
-                .withFileName(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#last.tlog")
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
                 .withBufferedIo(true)
                 .withImmediateFlush(false)
                 .withLocking(false)
-                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#%i.tlog")
+                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#-%i.tlog")
                 .setIgnoreExceptions(false)
                 .setLayout(layout)
-                .withPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"))
+                .withPolicy(CompositeTriggeringPolicy.createPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"), CronTriggeringPolicy.createPolicy(config, Boolean.TRUE.toString(), "0 0 * * * ?")))
                 .build();
 
         rollingAppender.start();
