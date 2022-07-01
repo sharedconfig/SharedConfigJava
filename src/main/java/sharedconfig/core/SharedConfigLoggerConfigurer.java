@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Arrays;
 
 public class SharedConfigLoggerConfigurer {
     /**
@@ -38,8 +39,8 @@ public class SharedConfigLoggerConfigurer {
         ProcessHandle.Info info = handle.info();
         var startTime= info.startInstant().map(Instant::toString).orElse("");
         var pid = handle.pid();
-        var processName = info.command().get().endsWith("java.exe") ? "java.exe" : "";
-        var commandArgs = info.arguments().isEmpty() ? "" : '"' + info.arguments().get().toString() + '"';
+        var processName = info.command().isPresent() ? "java.exe" : "";
+        var commandArgs = info.arguments().isEmpty() ? "" : '"' + Arrays.toString(info.arguments().get()) + '"';
         var argsHash = getHashMD5(computerName + processName + commandArgs + pid + startTime);
 
         var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -73,7 +74,7 @@ public class SharedConfigLoggerConfigurer {
         loggerConfig.addAppender(rollingAppender, Level.TRACE, null);
 
         config.addLogger("sharedconfig", loggerConfig);
-        val loggers = config.getLoggers();
+//        val loggers = config.getLoggers();
 
         ctx.updateLoggers();
     }
