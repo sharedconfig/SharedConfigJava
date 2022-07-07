@@ -51,7 +51,6 @@ public class SharedConfigConfigurer {
         }
         if (currentExecutable.getName().endsWith(".jar")) {
             log.info("Found jar enviroment: {}", currentExecutable.getName());
-            log.info("Found\r jar\n enviroment\\: {}", currentExecutable.getName());
             return extractConfigurationFolderFromJar(packageMarkerType, resourceFolderName, currentExecutable, Paths.get(targetFolderName)).toString();
         }
         throw new SharedConfigConfigurerException("Unsupported packaging type");
