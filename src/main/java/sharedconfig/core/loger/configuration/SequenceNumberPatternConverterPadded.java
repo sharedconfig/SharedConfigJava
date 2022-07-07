@@ -1,4 +1,4 @@
-package sharedconfig.core;
+package sharedconfig.core.loger.configuration;
 
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;

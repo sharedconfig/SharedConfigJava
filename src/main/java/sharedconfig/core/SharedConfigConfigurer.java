@@ -1,7 +1,9 @@
-package sharedconfig.helpers;
+package sharedconfig.core;
 
 import lombok.extern.log4j.Log4j2;
 import sharedconfig.core.exceptions.SharedConfigConfigurerException;
+import sharedconfig.helpers.ClassLocationHelper;
+import sharedconfig.helpers.FileHelper;
 
 import java.io.*;
 import java.net.URI;
@@ -13,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Log4j2
 public class SharedConfigConfigurer {
@@ -50,6 +51,7 @@ public class SharedConfigConfigurer {
         }
         if (currentExecutable.getName().endsWith(".jar")) {
             log.info("Found jar enviroment: {}", currentExecutable.getName());
+            log.info("Found\r jar\n enviroment\\: {}", currentExecutable.getName());
             return extractConfigurationFolderFromJar(packageMarkerType, resourceFolderName, currentExecutable, Paths.get(targetFolderName)).toString();
         }
         throw new SharedConfigConfigurerException("Unsupported packaging type");

@@ -1,4 +1,4 @@
-package sharedconfig.core;
+package sharedconfig.core.loger.configuration;
 
 import lombok.val;
 import org.apache.logging.log4j.Level;
@@ -51,14 +51,14 @@ public class SharedConfigLoggerConfigurer {
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
-                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %replace{%m}{\\\\}{\\\\\\\\}\"%n").build();
+                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
         val rollingAppender = RollingFileAppender.newBuilder()
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
                 .withBufferedIo(true)
                 .withImmediateFlush(false)
                 .withLocking(false)
-                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#-%i.tlog")
+                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#%i.tlog")
                 .setIgnoreExceptions(false)
                 .setLayout(layout)
                 .withPolicy(CompositeTriggeringPolicy.createPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"), CronTriggeringPolicy.createPolicy(config, Boolean.TRUE.toString(), "0 0 * * * ?")))
