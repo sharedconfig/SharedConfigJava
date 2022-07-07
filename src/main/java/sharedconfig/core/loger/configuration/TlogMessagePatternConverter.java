@@ -5,6 +5,10 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.pattern.ConverterKeys;
 import org.apache.logging.log4j.core.pattern.LogEventPatternConverter;
 
+/**
+ *  Converter Plugin который экранирует перенос строк, возврат каретки и обратный слеш.
+ */
+
 @Plugin(name = "TlogMessagePatternConverter", category = "Converter")
 @ConverterKeys({"tlogmsg"})
 public final class TlogMessagePatternConverter extends LogEventPatternConverter {
@@ -17,6 +21,12 @@ public final class TlogMessagePatternConverter extends LogEventPatternConverter 
         return new TlogMessagePatternConverter();
     }
 
+    /**
+     *  Экранирует спец символы и передает их в буффер.
+     *
+     * @param event событие которое содержит данные лога
+     * @param toAppendTo буффер в который нужно передать сообщение для логирования
+     */
     public void format(LogEvent event, StringBuilder toAppendTo) {
         var msg = event.getMessage().getFormattedMessage();
 
