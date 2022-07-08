@@ -32,11 +32,16 @@ public class SharedConfigLoggerConfigurer {
      *
      * @param outputFolderPath output logs folder location
      */
-    public static void traceLogsToFile(@NotNull String outputFolderPath) throws UnknownHostException, SharedConfigLoggerConfigurerException {
+    public static void traceLogsToFile(@NotNull String outputFolderPath) throws SharedConfigLoggerConfigurerException {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
 
-        var computerName = InetAddress.getLocalHost().getHostName();
+        String computerName = null;
+        try {
+            computerName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            throw new SharedConfigLoggerConfigurerException("не удалось получить хост", e);
+        }
         ProcessHandle handle = ProcessHandle.current();
         ProcessHandle.Info info = handle.info();
         var startTime= info.startInstant().map(Instant::toString).orElse("");
