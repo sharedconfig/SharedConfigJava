@@ -42,7 +42,7 @@ public class SharedConfigLoggerConfigurer {
         var startTime= info.startInstant().map(Instant::toString).orElse("");
         var pid = handle.pid();
         var processName = info.command().isPresent() ? "java.exe" : "";
-        var commandArgs = info.arguments().isEmpty() ? "" : '"' + Arrays.toString(info.arguments().get()) + '"';
+        var commandArgs = '"' + String.join(" ", info.arguments().orElse(new String[0])) + '"';
         var argsHash = getHashMD5(computerName + processName + commandArgs + pid + startTime);
 
         var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
