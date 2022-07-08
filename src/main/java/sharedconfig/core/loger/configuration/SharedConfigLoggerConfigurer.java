@@ -22,7 +22,6 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Date;
 
 public class SharedConfigLoggerConfigurer {
@@ -36,7 +35,7 @@ public class SharedConfigLoggerConfigurer {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
 
-        String computerName = null;
+        String computerName;
         try {
             computerName = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
@@ -44,7 +43,7 @@ public class SharedConfigLoggerConfigurer {
         }
         ProcessHandle handle = ProcessHandle.current();
         ProcessHandle.Info info = handle.info();
-        var startTime= info.startInstant().map(Instant::toString).orElse("");
+        var startTime = info.startInstant().map(Instant::toString).orElse("");
         var pid = handle.pid();
         var processName = info.command().isPresent() ? "java.exe" : "";
         var commandArgs = '"' + String.join(" ", info.arguments().orElse(new String[0])) + '"';
@@ -52,7 +51,7 @@ public class SharedConfigLoggerConfigurer {
 
         var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         var newFormat = new SimpleDateFormat("yyMMdd-HHmmss");
-        Date oldDate = null;
+        Date oldDate;
         try {
             oldDate = oldFormat.parse(startTime);
         } catch (ParseException e) {
@@ -70,7 +69,7 @@ public class SharedConfigLoggerConfigurer {
                 .withBufferedIo(true)
                 .withImmediateFlush(false)
                 .withLocking(false)
-                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash  + "-1-TLOG#%i.tlog")
+                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash + "-1-TLOG#%i.tlog")
                 .setIgnoreExceptions(false)
                 .setLayout(layout)
                 .withPolicy(CompositeTriggeringPolicy.createPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"), CronTriggeringPolicy.createPolicy(config, Boolean.TRUE.toString(), "0 0 * * * ?")))
@@ -95,7 +94,7 @@ public class SharedConfigLoggerConfigurer {
      * Creates logger (named 'sharedconfig') that catches all sharedconfigs' logs and targets them to
      * the file located at C:\\ProgramData\\universal-platform\\logs\\
      */
-    public static void traceLogsToFileToUPWindowsDefaultLocation() throws UnknownHostException, SharedConfigLoggerConfigurerException {
+    public static void traceLogsToFileToUPWindowsDefaultLocation() throws SharedConfigLoggerConfigurerException {
         traceLogsToFile("C:\\ProgramData\\universal-platform\\logs\\");
     }
 
