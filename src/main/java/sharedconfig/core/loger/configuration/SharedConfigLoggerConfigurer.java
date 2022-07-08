@@ -12,6 +12,7 @@ import org.apache.logging.log4j.core.config.AppenderRef;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.jetbrains.annotations.NotNull;
+import sharedconfig.core.exceptions.SharedConfigLoggerConfigurerException;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -22,6 +23,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Date;
 
 public class SharedConfigLoggerConfigurer {
     /**
@@ -30,7 +32,7 @@ public class SharedConfigLoggerConfigurer {
      *
      * @param outputFolderPath output logs folder location
      */
-    public static void traceLogsToFile(@NotNull String outputFolderPath) throws UnknownHostException, ParseException {
+    public static void traceLogsToFile(@NotNull String outputFolderPath) throws UnknownHostException, SharedConfigLoggerConfigurerException {
         val ctx = (LoggerContext) LogManager.getContext(false);
         val config = ctx.getConfiguration();
 
@@ -45,7 +47,12 @@ public class SharedConfigLoggerConfigurer {
 
         var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         var newFormat = new SimpleDateFormat("yyMMdd-HHmmss");
-        var oldDate = oldFormat.parse(startTime);
+        Date oldDate = null;
+        try {
+            oldDate = oldFormat.parse(startTime);
+        } catch (ParseException e) {
+            throw new SharedConfigLoggerConfigurerException("Не удалось привести старую дату к формату Date", e);
+        }
         var newDate = newFormat.format(oldDate);
 
         val layout = PatternLayout.newBuilder()
@@ -83,7 +90,7 @@ public class SharedConfigLoggerConfigurer {
      * Creates logger (named 'sharedconfig') that catches all sharedconfigs' logs and targets them to
      * the file located at C:\\ProgramData\\universal-platform\\logs\\
      */
-    public static void traceLogsToFileToUPWindowsDefaultLocation() throws UnknownHostException, ParseException {
+    public static void traceLogsToFileToUPWindowsDefaultLocation() throws UnknownHostException, SharedConfigLoggerConfigurerException {
         traceLogsToFile("C:\\ProgramData\\universal-platform\\logs\\");
     }
 

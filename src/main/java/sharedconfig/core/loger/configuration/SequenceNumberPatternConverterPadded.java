@@ -25,8 +25,6 @@ public final class SequenceNumberPatternConverterPadded extends LogEventPatternC
     }
 
     /**
-     *  инкрементирует значение и передает их в буффер.
-     *
      * @param event событие которое содержит данные лога
      * @param toAppendTo буффер в который нужно передать сообщение для логирования
      */
