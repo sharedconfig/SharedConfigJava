@@ -58,11 +58,12 @@ public class SharedConfigLoggerConfigurer {
             throw new SharedConfigLoggerConfigurerException("Не удалось привести старую дату к формату Date", e);
         }
         var newDate = newFormat.format(oldDate);
+        var timeNow = Instant.now().toString();
 
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
-                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
+                .withPattern("TE:%snp{6} t=\"" + timeNow + "\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
         val rollingAppender = RollingFileAppender.newBuilder()
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
