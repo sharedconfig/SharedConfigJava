@@ -6,7 +6,7 @@ import org.apache.logging.log4j.core.pattern.ConverterKeys;
 import org.apache.logging.log4j.core.pattern.LogEventPatternConverter;
 
 /**
- *  Соответствует %msg с дополнительным экранированием символов '\n', '\r' и '\'
+ *  Соответствует %msg с дополнительным экранированием символов '\n', '\r', '\', '"' и символы меньше пробела.
  */
 
 @Plugin(name = "TlogMessagePatternConverter", category = "Converter")
@@ -36,6 +36,10 @@ public final class TlogMessagePatternConverter extends LogEventPatternConverter 
                 toAppendTo.append("\\r");
             else if (curChar == '\\')
                 toAppendTo.append("\\\\");
+            else if (curChar == '"')
+                toAppendTo.append("\\\"");
+            else if (curChar < ' ')
+                continue;
             else
                 toAppendTo.append(msg.charAt(i));
         }
