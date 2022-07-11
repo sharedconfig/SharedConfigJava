@@ -41,7 +41,7 @@ public final class TlogMessagePatternConverter extends LogEventPatternConverter 
             else if (curChar < ' ')
                 continue;
             else
-                toAppendTo.append(msg.charAt(i));
+                toAppendTo.append(curChar);
         }
     }
 }
