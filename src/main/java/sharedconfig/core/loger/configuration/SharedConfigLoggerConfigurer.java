@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class SharedConfigLoggerConfigurer {
     /**
@@ -45,7 +46,9 @@ public class SharedConfigLoggerConfigurer {
 
         var startTime= info.startInstant().orElse(Instant.now());
         var startTimeFormat = new SimpleDateFormat("yyMMdd-HHmmss");
+        startTimeFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         var startTimeFormatted = startTimeFormat.format(Date.from(startTime));
+
         var pid = handle.pid();
         var processName = info.command().isPresent() ? "java.exe" : "";
         var commandArgs = '"' + String.join(" ", info.arguments().orElse(new String[0])) + '"';
