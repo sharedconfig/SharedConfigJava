@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -43,34 +42,26 @@ public class SharedConfigLoggerConfigurer {
         }
         ProcessHandle handle = ProcessHandle.current();
         ProcessHandle.Info info = handle.info();
-        var startTime = info.startInstant().map(Instant::toString).orElse("");
+
+        var startTime= info.startInstant().orElse(Instant.now());
+        var startTimeFormat = new SimpleDateFormat("yyMMdd-HHmmss");
+        var startTimeFormatted = startTimeFormat.format(Date.from(startTime));
         var pid = handle.pid();
         var processName = info.command().isPresent() ? "java.exe" : "";
         var commandArgs = '"' + String.join(" ", info.arguments().orElse(new String[0])) + '"';
         var argsHash = getHashMD5(computerName + processName + commandArgs + pid + startTime);
 
-        var oldFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        var newFormat = new SimpleDateFormat("yyMMdd-HHmmss");
-        Date oldDate;
-        try {
-            oldDate = oldFormat.parse(startTime);
-        } catch (ParseException e) {
-            throw new SharedConfigLoggerConfigurerException("Не удалось привести старую дату к формату Date", e);
-        }
-        var newDate = newFormat.format(oldDate);
-        var timeNow = Instant.now().toString();
-
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
-                .withPattern("TE:%snp{6} t=\"" + timeNow + "\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
+                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}{UTC}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
         val rollingAppender = RollingFileAppender.newBuilder()
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
                 .withBufferedIo(true)
                 .withImmediateFlush(false)
                 .withLocking(false)
-                .withFilePattern(outputFolderPath + newDate + "-" + pid + "-" + argsHash + "-1-TLOG#%i.tlog")
+                .withFilePattern(outputFolderPath + startTimeFormatted + "-" + pid + "-" + argsHash + "-1-TLOG#%i.tlog")
                 .setIgnoreExceptions(false)
                 .setLayout(layout)
                 .withPolicy(CompositeTriggeringPolicy.createPolicy(SizeBasedTriggeringPolicy.createPolicy("10MB"), CronTriggeringPolicy.createPolicy(config, Boolean.TRUE.toString(), "0 0 * * * ?")))
