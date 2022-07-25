@@ -17,6 +17,7 @@ import sharedconfig.core.exceptions.SharedConfigLoggerConfigurerException;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -57,12 +58,12 @@ public class SharedConfigLoggerConfigurer {
         val layout = PatternLayout.newBuilder()
                 .withHeader("LI:" + argsHash + " s.MachineName=" + computerName + " s.ProcessName=" + processName
                         + " s.CommandLine=" + commandArgs + " s.Id=" + pid + " s.StartTime=" + '"' + startTime + '"' + "%n")
-                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}{UTC}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").build();
+                .withPattern("TE:%snp{6} t=\"%d{yyyy.MM.dd'T'HH:mm:ss.SSS'Z'}{UTC}\" %level{FATAL=Error, WARN=Warning, DEBUG=Info, ERROR=Error, TRACE=Info, INFO=Info} m=\"%M : %tlogmsg\"%n").withCharset(StandardCharsets.UTF_8).build();
         val rollingAppender = RollingFileAppender.newBuilder()
                 .setName("sharedconfig-up-logs-appender")
                 .setConfiguration(config)
-                .withBufferedIo(true)
-                .withImmediateFlush(false)
+                .setBufferedIo(true)
+                .setImmediateFlush(false)
                 .withLocking(false)
                 .withFilePattern(outputFolderPath + startTimeFormatted + "-" + pid + "-" + argsHash + "-1-TLOG#%i.tlog")
                 .setIgnoreExceptions(false)
@@ -76,7 +77,7 @@ public class SharedConfigLoggerConfigurer {
         val ref = AppenderRef.createAppenderRef("File", null, null);
         val refs = new AppenderRef[]{ref};
 
-        val loggerConfig = LoggerConfig.createLogger(true, Level.ALL, "sharedconfig", null, refs, null, config, null);
+        val loggerConfig = LoggerConfig.newBuilder().withConfig(config).withAdditivity(true).withLevel(Level.ALL).withLoggerName("sharedconfig").withRefs(refs).build();
         loggerConfig.addAppender(rollingAppender, Level.TRACE, null);
 
         config.addLogger("sharedconfig", loggerConfig);
